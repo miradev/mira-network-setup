@@ -16,7 +16,7 @@ async function scanWifi() {
   const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
   const output = cmd.stdout
     .split(/\r?\n/)
-    .filter(it => it.length > 0 && it.includes("ESSID"))
+    .filter(it => it.includes("ESSID"))
     .map(it => {
       const match = ESSID_REGEX.exec(it)
       if (match) {
