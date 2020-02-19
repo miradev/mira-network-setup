@@ -5,8 +5,8 @@ const express = require("express")
 const app = express()
 const port = 3000
 
-const ESSID_REGEX = /ESSID:"(.*)"/g
-const IPV4_INET_REGEX = /inet (\d+\.\d+\.\d+\.\d+)/g
+const ESSID_REGEX = /ESSID:"(.*)"/
+const IPV4_INET_REGEX = /inet (\d+\.\d+\.\d+\.\d+)/
 
 async function scanWifi() {
   const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
