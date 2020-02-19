@@ -8,6 +8,10 @@ const port = 3000
 const ESSID_REGEX = /ESSID:"(.*)"/
 const IPV4_INET_REGEX = /inet (\d+\.\d+\.\d+\.\d+)/
 
+function distinct(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
 async function scanWifi() {
   const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
   const output = cmd.stdout
@@ -22,6 +26,7 @@ async function scanWifi() {
       }
     })
     .filter(it => it.length > 0)
+    .filter(distinct)
   return output
 }
 
