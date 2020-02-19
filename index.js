@@ -39,7 +39,7 @@ async function localIpv4Addr(interfaceName) {
   return addr[1]
 }
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
   res.send("Hello world!")
 })
 
