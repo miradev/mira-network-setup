@@ -1,28 +1,33 @@
+const util = require("util")
 const { exec } = require("child_process")
+const execAsync = util.promisify(exec)
 const express = require("express")
 const app = express()
 const port = 3000
 
-function scanWifi() {
-  exec("sudo iwlist wlan0 scan", (err, stdout, stderr) => {
-    if (err) {
-      return []
-    }
-    if (stderr) {
-      return []
-    }
+const ESSID_REGEX = /ESSID:"(.*)"/g
 
-    const output = stdout.split(/\r?\n/).filter(it => it.length > 0 && it.includes("ESSID"))
-    return output
-  })
+async function scanWifi() {
+  const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
+  const output = cmd.stdout.split(/\r?\n/).filter(it => it.length > 0 && it.includes("ESSID"))
+    .map(it => {
+      const match = ESSID_REGEX.exec(it)
+      if (match) {
+        return match[1]
+      } else {
+        return ""
+      }
+    })
+    .filter(it => it.length > 0)
+  return output
 }
 
 app.get("/", (req, res) => {
   res.send("Hello world!")
 })
 
-app.get("/scan", (req, res) => {
-  const ssids = scanWifi()
+app.get("/scan", async (req, res) => {
+  const ssids = await scanWifi()
   res.json(ssids)
 })
 
