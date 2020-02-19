@@ -25,8 +25,8 @@ async function scanWifi() {
   return output
 }
 
-async function localIpv4Addr() {
-  const cmd = await execAsync("ifconfig wlan0", { encoding: "utf-8" })
+async function localIpv4Addr(interfaceName) {
+  const cmd = await execAsync(`ifconfig ${interfaceName}`, { encoding: "utf-8" })
   const addr = IPV4_INET_REGEX.exec(cmd.stdout)
   if (addr == null) {
     return "unknown"
@@ -44,7 +44,12 @@ app.get("/scan", async (req, res) => {
 })
 
 app.get("/ipv4", async (req, res) => {
-  const ipv4Addr = await localIpv4Addr()
+  const ipv4Addr = await localIpv4Addr("wlan0")
+  res.send(ipv4Addr)
+})
+
+app.get("/ipv4ap", async (req, res) => {
+  const ipv4Addr = await localIpv4Addr("uap0")
   res.send(ipv4Addr)
 })
 
