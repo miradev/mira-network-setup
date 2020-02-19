@@ -6,10 +6,13 @@ const app = express()
 const port = 3000
 
 const ESSID_REGEX = /ESSID:"(.*)"/g
+const IPV4_INET_REGEX = /inet (\d+\.\d+\.\d+\.\d+)/g
 
 async function scanWifi() {
   const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
-  const output = cmd.stdout.split(/\r?\n/).filter(it => it.length > 0 && it.includes("ESSID"))
+  const output = cmd.stdout
+    .split(/\r?\n/)
+    .filter(it => it.length > 0 && it.includes("ESSID"))
     .map(it => {
       const match = ESSID_REGEX.exec(it)
       if (match) {
@@ -22,6 +25,15 @@ async function scanWifi() {
   return output
 }
 
+async function localIpv4Addr() {
+  const cmd = await execAsync("ifconfig wlan0", { encoding: "utf-8" })
+  const addr = IPV4_INET_REGEX.exec(cmd.stdout)
+  if (addr == null) {
+    return "unknown"
+  }
+  return addr[1]
+}
+
 app.get("/", (req, res) => {
   res.send("Hello world!")
 })
@@ -29,6 +41,11 @@ app.get("/", (req, res) => {
 app.get("/scan", async (req, res) => {
   const ssids = await scanWifi()
   res.json(ssids)
+})
+
+app.get("/ipv4", async (req, res) => {
+  const ipv4Addr = await localIpv4Addr()
+  res.send(ipv4Addr)
 })
 
 app.listen(port, () => {
