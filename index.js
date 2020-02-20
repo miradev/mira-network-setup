@@ -2,6 +2,7 @@ const util = require("util")
 const { exec } = require("child_process")
 const execAsync = util.promisify(exec)
 const express = require("express")
+const path = require("path")
 const app = express()
 const port = 3000
 
@@ -38,6 +39,8 @@ async function localIpv4Addr(interfaceName) {
   }
   return addr[1]
 }
+
+app.use(express.static(path.join("vue", "dist")))
 
 app.get("/test", (req, res) => {
   res.send("Hello world!")

@@ -37,7 +37,7 @@ export default class App extends Vue {
   private ssidPassword = ""
 
   public scanNetworks() {
-    axios.get("localhost:3000/scan").then(value => {
+    axios.get("http://localhost:3000/scan").then(value => {
       const networks = value.data
       this.ssids = networks
     })
@@ -51,7 +51,7 @@ export default class App extends Vue {
     const ssid = this.selectedSSID
     const password = this.ssidPassword
     axios
-      .post("localhost:3000/connect", {
+      .post("http://localhost:3000/connect", {
         ssid: ssid,
         password: password,
       })
