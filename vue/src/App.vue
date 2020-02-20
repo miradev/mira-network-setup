@@ -33,6 +33,13 @@
 import { Component, Vue } from "vue-property-decorator"
 import axios from "axios"
 
+const axiosConfig = {
+  headers: {
+    "Content-Type": "application/json;charset=UTF-8",
+    "Access-Control-Allow-Origin": "*",
+  },
+}
+
 @Component
 export default class App extends Vue {
   private ssids: string[] = []
@@ -80,11 +87,7 @@ export default class App extends Vue {
           ssid: ssid,
           password: password,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
+        axiosConfig,
       )
       .then(value => {
         console.log(value)
