@@ -25,6 +25,7 @@
       </div>
       <p v-if="connecting" class="is-size-4 loading msg">Connecting...</p>
       <p v-if="connected" class="is-size-4 msg">You are now connected to {{ ssid }}!</p>
+      <p v-if="status" class="is-size-4 msg">{{ status }}</p>
     </div>
   </div>
 </template>
@@ -49,6 +50,7 @@ export default class App extends Vue {
   private scanning = false
   private connecting = false
   private connected = false
+  private status = ""
   private host!: string
 
   mounted() {
@@ -93,10 +95,11 @@ export default class App extends Vue {
       .then(value => {
         this.connecting = false
         this.connected = true
-        console.log(value.data)
+        this.status = value.data
       })
-      .catch(() => {
+      .catch(err => {
         this.connecting = false
+        this.status = err
       })
   }
 }
