@@ -2,21 +2,27 @@ const util = require("util")
 const { exec } = require("child_process")
 const execAsync = util.promisify(exec)
 const express = require("express")
+const bodyParser = require("body-parser")
 const path = require("path")
-const app = express()
 const port = 3000
 
+const NEW_LINE_REGEX = /\r?\n/
 const ESSID_REGEX = /ESSID:"(.*)"/
 const IPV4_INET_REGEX = /inet (\d+\.\d+\.\d+\.\d+)/
+const UTF8_ENCODING = { encoding: "utf-8" }
+
+const app = express()
+app.use(express.static(path.join("vue", "dist")))
+app.use(bodyParser.urlencoded({ extended: true }))
 
 function distinct(value, index, self) {
-  return self.indexOf(value) === index;
+  return self.indexOf(value) === index
 }
 
 async function scanWifi() {
-  const cmd = await execAsync("sudo iwlist wlan0 scan", { encoding: "utf-8" })
+  const cmd = await execAsync("sudo iwlist wlan0 scan", UTF8_ENCODING)
   const output = cmd.stdout
-    .split(/\r?\n/)
+    .split(NEW_LINE_REGEX)
     .filter(it => it.includes("ESSID"))
     .map(it => {
       const match = ESSID_REGEX.exec(it)
@@ -32,15 +38,13 @@ async function scanWifi() {
 }
 
 async function localIpv4Addr(interfaceName) {
-  const cmd = await execAsync(`ifconfig ${interfaceName}`, { encoding: "utf-8" })
+  const cmd = await execAsync(`ifconfig ${interfaceName}`, UTF8_ENCODING)
   const addr = IPV4_INET_REGEX.exec(cmd.stdout)
   if (addr == null) {
     return "unknown"
   }
   return addr[1]
 }
-
-app.use(express.static(path.join("vue", "dist")))
 
 app.get("/test", (req, res) => {
   res.send("Hello world!")
@@ -59,6 +63,26 @@ app.get("/ipv4", async (req, res) => {
 app.get("/ipv4ap", async (req, res) => {
   const ipv4Addr = await localIpv4Addr("uap0")
   res.send(ipv4Addr)
+})
+
+app.post("/connect", async (req, res) => {
+  const json = req.body
+  const ssid = json.ssid
+  const password = json.password
+
+  const cmd = await execAsync(`wpa_cli add_network`, UTF8_ENCODING)
+  const addedNetwork = cmd.stdout.split(NEW_LINE_REGEX)
+  const networkId = parseInt(addedNetwork[addedNetwork.length - 1])
+
+  console.log("The network ID is " + networkId)
+
+  await execAsync(`wpa_cli set_network ${networkId} ssid '"${ssid}"'`, UTF8_ENCODING)
+  if (password) {
+    await execAsync(`wpa_cli set_network ${networkId} psk '"${password}"'`, UTF8_ENCODING)
+  } else {
+    await execAsync(`wpa_cli set_network ${networkId} key_mgmt NONE`, UTF8_ENCODING)
+  }
+  await execAsync(`wpa_cli save_config`, UTF8_ENCODING)
 })
 
 app.listen(port, () => {
