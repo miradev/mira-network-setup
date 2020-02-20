@@ -74,10 +74,18 @@ export default class App extends Vue {
     const ssid = this.ssid
     const password = this.ssidPassword
     axios
-      .post(this.api("/connect"), {
-        ssid: ssid,
-        password: password,
-      })
+      .post(
+        this.api("/connect"),
+        {
+          ssid: ssid,
+          password: password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      )
       .then(value => {
         console.log(value)
         this.connecting = false
