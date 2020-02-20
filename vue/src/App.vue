@@ -5,24 +5,26 @@
       <p class="is-size-4">Connect to a network.</p>
       <br />
       <button class="button is-primary" v-on:click="scanNetworks()">Scan Networks</button>
-      <p v-if="scanning" class="is-size-4 scanning">Scanning</p>
+      <p v-if="scanning" class="is-size-4 loading msg">Scanning</p>
       <nav v-if="ssids.length > 0" class="panel">
         <p class="panel-heading">
           List of Networks
         </p>
-        <div class="panel-wrapper" v-for="ssid in ssids" v-bind:key="ssid">
+        <div class="panel-wrapper" v-for="id in ssids" v-bind:key="id">
           <a class="panel-block" v-on:click="selectNetwork">
-            {{ ssid }}
+            {{ id }}
           </a>
         </div>
       </nav>
-      <div id="selected" v-if="selectedSSID.length > 0" class="field">
-        <label class="label">Network: {{ selectedSSID }}</label>
+      <div id="selected" v-if="ssid.length > 0" class="field">
+        <label class="label">Network: {{ ssid }}</label>
         <div class="control">
           <input v-model="ssidPassword" class="input" type="password" placeholder="SSID password" />
-          <button class="button is-primary" v-on:click="connectToNetwork()">Submit</button>
+          <button class="button is-primary" v-on:click="connectToNetwork()">Connect</button>
         </div>
       </div>
+      <p v-if="connecting" class="is-size-4 loading msg">Connecting...</p>
+      <p v-if="connected" class="is-size-4 msg">You are now connected to {{ ssid }}!</p>
     </div>
   </div>
 </template>
@@ -34,9 +36,11 @@ import axios from "axios"
 @Component
 export default class App extends Vue {
   private ssids: string[] = []
-  private selectedSSID = ""
+  private ssid = ""
   private ssidPassword = ""
   private scanning = false
+  private connecting = false
+  private connected = false
   private host!: string
 
   mounted() {
@@ -62,11 +66,12 @@ export default class App extends Vue {
   }
 
   public selectNetwork(event: MouseEvent) {
-    this.selectedSSID = (event.target as HTMLAnchorElement).text.trim()
+    this.ssid = (event.target as HTMLAnchorElement).text.trim()
   }
 
   public connectToNetwork() {
-    const ssid = this.selectedSSID
+    this.connecting = true
+    const ssid = this.ssid
     const password = this.ssidPassword
     axios
       .post(this.api("/connect"), {
@@ -75,6 +80,10 @@ export default class App extends Vue {
       })
       .then(value => {
         console.log(value)
+        this.connecting = false
+      })
+      .catch(() => {
+        this.connecting = false
       })
   }
 }
@@ -149,10 +158,10 @@ div.container
   text-align: center
   color: $highlight
 
-.scanning
+.msg
   margin: 2rem
 
-.scanning:after
+.loading:after
   overflow: hidden
   display: inline-block
   vertical-align: bottom
