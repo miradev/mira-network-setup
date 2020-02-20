@@ -50,15 +50,14 @@ async function localIpv4Addr(interfaceName) {
 app.get("/ping", async (req, res) => {
   // Ping google.com for 5 seconds
   console.log(`Pinging google.com for connectivity test.`)
-  const pingCmd = await execAsync(`ping google.com -w 5`)
-
-  if (pingCmd.stdout.includes("Temporary failure in name resolution")) {
-    res.status(400).json({ ping: pingCmd.stdout })
-  } else {
+  try {
+    const pingCmd = await execAsync(`ping google.com -w 5`)
     const cmd = await execAsync(`iwgetid`, UTF8_ENCODING)
     const match = ESSID_REGEX.exec(cmd.stdout)
     const ssid = match ? match[1] : "UNKNOWN"
     res.json({ ping: pingCmd.stdout, ssid: ssid })
+  } catch (err) {
+    res.status(400).json({ error: err })
   }
 })
 

@@ -54,11 +54,11 @@ export default class App extends Vue {
 
   mounted() {
     this.host = `${window.location.protocol}//${window.location.host}`
-
+    this.status = "Testing connectivity..."
     axios
       .get(this.api("/ping"))
       .then(value => {
-        this.status = `You are connected to SSID: ${value.data.ssid}`
+        this.status = `You are connected to ${value.data.ssid} with internet access!`
       })
       .catch(err => {
         this.canScan = true
@@ -109,7 +109,7 @@ export default class App extends Vue {
         this.connecting = false
       })
       .then(() => {
-        this.status = "Testing connectivity on new network."
+        this.status = "Testing connectivity on new network. If your device disconnects from MiraNet, please reconnect to it and refresh the page."
         setTimeout(() => {
           // Refresh page
           window.location.reload()
