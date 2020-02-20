@@ -5,6 +5,7 @@
       <p class="is-size-4">Connect to a network.</p>
       <br />
       <button class="button is-primary" v-on:click="scanNetworks()">Scan Networks</button>
+      <p v-if="scanning" class="is-size-4 scanning">Scanning</p>
       <nav v-if="ssids.length > 0" class="panel">
         <p class="panel-heading">
           List of Networks
@@ -35,6 +36,7 @@ export default class App extends Vue {
   private ssids: string[] = []
   private selectedSSID = ""
   private ssidPassword = ""
+  private scanning = false
   private host!: string
 
   mounted() {
@@ -46,10 +48,17 @@ export default class App extends Vue {
   }
 
   public scanNetworks() {
-    axios.get(this.api("/scan")).then(value => {
-      const networks = value.data
-      this.ssids = networks
-    })
+    this.scanning = true
+    axios
+      .get(this.api("/scan"))
+      .then(value => {
+        const networks = value.data
+        this.ssids = networks
+        this.scanning = false
+      })
+      .catch(() => {
+        this.scanning = false
+      })
   }
 
   public selectNetwork(event: MouseEvent) {
@@ -139,4 +148,24 @@ div.container
   -moz-osx-font-smoothing: grayscale
   text-align: center
   color: $highlight
+
+.scanning
+  margin: 2rem
+
+.scanning:after
+  overflow: hidden
+  display: inline-block
+  vertical-align: bottom
+  -webkit-animation: ellipsis steps(4,end) 900ms infinite
+  animation: ellipsis steps(4,end) 900ms infinite
+  content: "\2026"
+  width: 0px
+
+@keyframes ellipsis
+  to
+    width: 1.25em
+
+@-webkit-keyframes ellipsis
+  to
+    width: 1.25em
 </style>
