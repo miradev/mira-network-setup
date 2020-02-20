@@ -47,8 +47,16 @@ async function localIpv4Addr(interfaceName) {
   return addr[1]
 }
 
-app.get("/test", (req, res) => {
-  res.send("Hello world!")
+app.get("/ping", (req, res) => {
+  // Ping google.com for 5 seconds
+  console.log(`Pinging google.com for connectivity test.`)
+  const pingCmd = await execAsync(`ping google.com -w 5`)
+
+  if (pingCmd.stdout.includes("Temporary failure in name resolution")) {
+    res.status(400).json({ ping: pingCmd.stdout })
+  } else {
+    res.json({ ping: pingCmd.stdout })
+  }
 })
 
 app.get("/scan", async (req, res) => {
@@ -80,7 +88,7 @@ async function getNetworkId() {
   return networkId
 }
 
-async function saveNetworkConfig(ssid, password) {
+async function saveNetworkConfig(ssid, password, networkId) {
   await execAsync(`wpa_cli set_network ${networkId} ssid '"${ssid}"'`, UTF8_ENCODING)
   if (password) {
     await execAsync(`wpa_cli set_network ${networkId} psk '"${password}"'`, UTF8_ENCODING)
@@ -95,6 +103,7 @@ app.post("/connect", async (req, res) => {
   const ssid = req.body.ssid
   const password = req.body.password
 
+  // Remove all networks and start at network id = 0
   let networkId = await getNetworkId()
   if (networkId > 0) {
     for (let i = 0; i <= networkId; i++) {
@@ -103,28 +112,16 @@ app.post("/connect", async (req, res) => {
     networkId = await getNetworkId()
   }
 
-  await saveNetworkConfig(ssid, password)
+  await saveNetworkConfig(ssid, password, networkId)
   console.log(`Saved wpa_supplicant config for SSID: ${ssid}`)
 
   // Wait 5 seconds
   await sleep(5000)
 
   // Restart dhcpcd
+  res.json({ message: `Configuration saved for ${ssid}` })
   console.log(`Restarting dhcpcd service`)
   await execAsync(`systemctl restart dhcpcd`)
-
-  // Wait another 10 seconds
-  await sleep(10000)
-
-  // Ping google.com for 5 seconds
-  console.log(`Pinging google.com for connectivity test.`)
-  const pingCmd = await execAsync(`ping google.com -w 5`)
-
-  if (pingCmd.stdout.includes("Temporary failure in name resolution")) {
-    res.status(400).json({ ping: pingCmd.stdout })
-  } else {
-    res.json({ ping: pingCmd.stdout })
-  }
 })
 
 app.listen(port, () => {

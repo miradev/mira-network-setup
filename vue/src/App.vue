@@ -95,11 +95,24 @@ export default class App extends Vue {
       .then(value => {
         this.connecting = false
         this.connected = true
-        this.status = value.data
       })
       .catch(err => {
         this.connecting = false
-        this.status = err
+      })
+      .then(() => {
+        this.status = "Testing connectivity on new network."
+        setTimeout(() => {
+          axios
+            .get(this.api("/ping"))
+            .then(value => {
+              this.status = value.data
+              this.connected = true
+            })
+            .catch(err => {
+              this.status = err
+              this.connected = false
+            })
+        }, 10000)
       })
   }
 }
