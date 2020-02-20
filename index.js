@@ -12,8 +12,12 @@ const UTF8_ENCODING = { encoding: "utf-8" }
 
 const app = express()
 app.use(express.static(path.join("vue", "dist")))
-app.use(express.urlencoded())
+app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 function distinct(value, index, self) {
   return self.indexOf(value) === index
@@ -65,6 +69,13 @@ app.get("/ipv4ap", async (req, res) => {
   res.send(ipv4Addr)
 })
 
+app.get("/connected", async (req, res) => {
+  const cmd = await execAsync(`iwgetid`, UTF8_ENCODING)
+  const match = ESSID_REGEX.exec(cmd.stdout)
+  const ssid = match ? match[1] : "UNKNOWN"
+  res.json({ ssid: ssid })
+})
+
 app.post("/connect", async (req, res) => {
   const json = req.body
   const ssid = json.ssid
@@ -80,8 +91,22 @@ app.post("/connect", async (req, res) => {
   } else {
     await execAsync(`wpa_cli set_network ${networkId} key_mgmt NONE`, UTF8_ENCODING)
   }
+  await execAsync(`wpa_cli enable_network ${networkId}`, UTF8_ENCODING)
   await execAsync(`wpa_cli save_config`, UTF8_ENCODING)
-  res.sendStatus(200)
+
+  // Wait 5 seconds
+  await sleep(5000)
+
+  // Restart dhcpcd
+  await execAsync(`systemctl restart dhcpcd`)
+
+  // Wait another 10 seconds
+  await sleep(10000)
+
+  // Ping google.com for 5 seconds
+  const pingCmd = await execAsync(`ping google.com -w 5`)
+
+  res.json({ ping: pingCmd.stdout })
 })
 
 app.listen(port, () => {

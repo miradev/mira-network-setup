@@ -34,6 +34,7 @@ import { Component, Vue } from "vue-property-decorator"
 import axios from "axios"
 
 const axiosConfig = {
+  timeout: 1000 * 45,
   headers: {
     "Content-Type": "application/json;charset=UTF-8",
     "Access-Control-Allow-Origin": "*",
@@ -90,8 +91,9 @@ export default class App extends Vue {
         axiosConfig,
       )
       .then(value => {
-        console.log(value)
         this.connecting = false
+        this.connected = true
+        console.log(value.data)
       })
       .catch(() => {
         this.connecting = false
