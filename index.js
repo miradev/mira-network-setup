@@ -47,7 +47,7 @@ async function localIpv4Addr(interfaceName) {
   return addr[1]
 }
 
-app.get("/ping", (req, res) => {
+app.get("/ping", async (req, res) => {
   // Ping google.com for 5 seconds
   console.log(`Pinging google.com for connectivity test.`)
   const pingCmd = await execAsync(`ping google.com -w 5`)
@@ -55,7 +55,10 @@ app.get("/ping", (req, res) => {
   if (pingCmd.stdout.includes("Temporary failure in name resolution")) {
     res.status(400).json({ ping: pingCmd.stdout })
   } else {
-    res.json({ ping: pingCmd.stdout })
+    const cmd = await execAsync(`iwgetid`, UTF8_ENCODING)
+    const match = ESSID_REGEX.exec(cmd.stdout)
+    const ssid = match ? match[1] : "UNKNOWN"
+    res.json({ ping: pingCmd.stdout, ssid: ssid })
   }
 })
 
@@ -72,13 +75,6 @@ app.get("/ipv4", async (req, res) => {
 app.get("/ipv4ap", async (req, res) => {
   const ipv4Addr = await localIpv4Addr("uap0")
   res.send(ipv4Addr)
-})
-
-app.get("/connected", async (req, res) => {
-  const cmd = await execAsync(`iwgetid`, UTF8_ENCODING)
-  const match = ESSID_REGEX.exec(cmd.stdout)
-  const ssid = match ? match[1] : "UNKNOWN"
-  res.json({ ssid: ssid })
 })
 
 async function getNetworkId() {

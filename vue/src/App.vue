@@ -23,7 +23,7 @@
           <button class="button is-primary" v-on:click="connectToNetwork()">Connect</button>
         </div>
       </div>
-      <p v-if="connecting" class="is-size-4 loading msg">Connecting...</p>
+      <p v-if="connecting" class="is-size-4 loading msg">Connecting</p>
       <p v-if="connected" class="is-size-4 msg">You are now connected to {{ ssid }}!</p>
       <p v-if="status" class="is-size-4 msg">{{ status }}</p>
     </div>
@@ -47,6 +47,7 @@ export default class App extends Vue {
   private ssids: string[] = []
   private ssid = ""
   private ssidPassword = ""
+  private canScan = false
   private scanning = false
   private connecting = false
   private connected = false
@@ -55,6 +56,18 @@ export default class App extends Vue {
 
   mounted() {
     this.host = `${window.location.protocol}//${window.location.host}`
+
+    axios
+      .get(this.api("/ping"))
+      .then(value => {
+        this.status = `You are connected to SSID: ${value.data.ssid}`
+        this.connected = true
+      })
+      .catch(err => {
+        this.canScan = true
+        this.status = err
+        this.connected = false
+      })
   }
 
   private api(endpoint: string): string {
@@ -92,26 +105,17 @@ export default class App extends Vue {
         },
         axiosConfig,
       )
-      .then(value => {
+      .then(() => {
         this.connecting = false
-        this.connected = true
       })
-      .catch(err => {
+      .catch(() => {
         this.connecting = false
       })
       .then(() => {
         this.status = "Testing connectivity on new network."
         setTimeout(() => {
-          axios
-            .get(this.api("/ping"))
-            .then(value => {
-              this.status = value.data
-              this.connected = true
-            })
-            .catch(err => {
-              this.status = err
-              this.connected = false
-            })
+          // Refresh page
+          window.location.reload()
         }, 10000)
       })
   }
