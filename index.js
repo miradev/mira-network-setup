@@ -2,7 +2,6 @@ const util = require("util")
 const { exec } = require("child_process")
 const execAsync = util.promisify(exec)
 const express = require("express")
-const bodyParser = require("body-parser")
 const path = require("path")
 const port = 3000
 
@@ -13,7 +12,8 @@ const UTF8_ENCODING = { encoding: "utf-8" }
 
 const app = express()
 app.use(express.static(path.join("vue", "dist")))
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(express.urlencoded())
+app.use(express.json())
 
 function distinct(value, index, self) {
   return self.indexOf(value) === index
@@ -71,10 +71,8 @@ app.post("/connect", async (req, res) => {
   const password = json.password
 
   const cmd = await execAsync(`wpa_cli add_network`, UTF8_ENCODING)
-  const addedNetwork = cmd.stdout.split(NEW_LINE_REGEX)
+  const addedNetwork = cmd.stdout.trim().split(NEW_LINE_REGEX)
   const networkId = parseInt(addedNetwork[addedNetwork.length - 1])
-
-  console.log("The network ID is " + networkId)
 
   await execAsync(`wpa_cli set_network ${networkId} ssid '"${ssid}"'`, UTF8_ENCODING)
   if (password) {
@@ -83,6 +81,7 @@ app.post("/connect", async (req, res) => {
     await execAsync(`wpa_cli set_network ${networkId} key_mgmt NONE`, UTF8_ENCODING)
   }
   await execAsync(`wpa_cli save_config`, UTF8_ENCODING)
+  res.sendStatus(200)
 })
 
 app.listen(port, () => {
