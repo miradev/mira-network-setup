@@ -1,4 +1,5 @@
 const util = require("util")
+const sleep = util.promisify(setTimeout)
 const { exec } = require("child_process")
 const execAsync = util.promisify(exec)
 const express = require("express")
@@ -14,10 +15,6 @@ const app = express()
 app.use(express.static(path.join("vue", "dist")))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 
 function distinct(value, index, self) {
   return self.indexOf(value) === index
@@ -76,15 +73,14 @@ app.get("/connected", async (req, res) => {
   res.json({ ssid: ssid })
 })
 
-app.post("/connect", async (req, res) => {
-  const json = req.body
-  const ssid = json.ssid
-  const password = json.password
-
+async function getNetworkId() {
   const cmd = await execAsync(`wpa_cli add_network`, UTF8_ENCODING)
   const addedNetwork = cmd.stdout.trim().split(NEW_LINE_REGEX)
   const networkId = parseInt(addedNetwork[addedNetwork.length - 1])
+  return networkId
+}
 
+async function saveNetworkConfig(ssid, password) {
   await execAsync(`wpa_cli set_network ${networkId} ssid '"${ssid}"'`, UTF8_ENCODING)
   if (password) {
     await execAsync(`wpa_cli set_network ${networkId} psk '"${password}"'`, UTF8_ENCODING)
@@ -93,20 +89,42 @@ app.post("/connect", async (req, res) => {
   }
   await execAsync(`wpa_cli enable_network ${networkId}`, UTF8_ENCODING)
   await execAsync(`wpa_cli save_config`, UTF8_ENCODING)
+}
+
+app.post("/connect", async (req, res) => {
+  const ssid = req.body.ssid
+  const password = req.body.password
+
+  let networkId = await getNetworkId()
+  if (networkId > 0) {
+    for (let i = 0; i <= networkId; i++) {
+      await execAsync(`wpa_cli remove_network ${i}`)
+    }
+    networkId = await getNetworkId()
+  }
+
+  await saveNetworkConfig(ssid, password)
+  console.log(`Saved wpa_supplicant config for SSID: ${ssid}`)
 
   // Wait 5 seconds
   await sleep(5000)
 
   // Restart dhcpcd
+  console.log(`Restarting dhcpcd service`)
   await execAsync(`systemctl restart dhcpcd`)
 
   // Wait another 10 seconds
   await sleep(10000)
 
   // Ping google.com for 5 seconds
+  console.log(`Pinging google.com for connectivity test.`)
   const pingCmd = await execAsync(`ping google.com -w 5`)
 
-  res.json({ ping: pingCmd.stdout })
+  if (pingCmd.stdout.includes("Temporary failure in name resolution")) {
+    res.status(400).json({ ping: pingCmd.stdout })
+  } else {
+    res.json({ ping: pingCmd.stdout })
+  }
 })
 
 app.listen(port, () => {
