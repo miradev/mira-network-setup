@@ -4,7 +4,7 @@
       <img id="logo" alt="Vue logo" src="./assets/logo.png" />
       <p class="is-size-4">Connect to a network.</p>
       <br />
-      <button class="button is-primary" v-on:click="scanNetworks()">Scan Networks</button>
+      <button v-show="canScan" class="button is-primary" v-on:click="scanNetworks()">Scan Networks</button>
       <p v-if="scanning" class="is-size-4 loading msg">Scanning</p>
       <nav v-if="ssids.length > 0" class="panel">
         <p class="panel-heading">
@@ -24,8 +24,7 @@
         </div>
       </div>
       <p v-if="connecting" class="is-size-4 loading msg">Connecting</p>
-      <p v-if="connected" class="is-size-4 msg">You are now connected to {{ ssid }}!</p>
-      <p v-if="status" class="is-size-4 msg">{{ status }}</p>
+      <p v-show="status" class="is-size-4 msg">{{ status }}</p>
     </div>
   </div>
 </template>
@@ -50,7 +49,6 @@ export default class App extends Vue {
   private canScan = false
   private scanning = false
   private connecting = false
-  private connected = false
   private status = ""
   private host!: string
 
@@ -61,12 +59,10 @@ export default class App extends Vue {
       .get(this.api("/ping"))
       .then(value => {
         this.status = `You are connected to SSID: ${value.data.ssid}`
-        this.connected = true
       })
       .catch(err => {
         this.canScan = true
-        this.status = err
-        this.connected = false
+        this.status = `You are not connected to an internet enabled network.`
       })
   }
 
@@ -76,6 +72,7 @@ export default class App extends Vue {
 
   public scanNetworks() {
     this.scanning = true
+    this.status = ""
     axios
       .get(this.api("/scan"))
       .then(value => {
